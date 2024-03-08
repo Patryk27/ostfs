@@ -220,8 +220,8 @@ be linked as-is.
 
 This is what makes (almost) zero-cost snapshots (almost) zero-cost - because we
 don't modify objects in-place, we can reuse this fact to time-travel back to the
-past, if only we can get our hands on the past object ids (and we don't remove
-those past objects, of course).
+past, if only we can get our hands on the past object ids (and if we don't
+remove those past objects, of course).
 
 What's more, this also allows for perfectly safe **atomic updates**! -- remember
 the header object?
