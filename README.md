@@ -115,22 +115,22 @@ drwxr-xr-x  15 PWY  staff  480 Mar  8 20:49 ..
             |
             |
             v
-        / ----- \                 / ---------- \
-        | entry |  -- has name -> | payload(/) |  # root note starts at `/`
-        \ ----- /                 \ ---------- /  # (just a convention)
+        / ----- \                / ---------- \
+        | entry | -- has name -> | payload(/) |  # root note starts at `/`
+        \ ----- /                \ ---------- /  # (just a convention)
             |
             |
         has child
             |
             |
             v
-        / ----- \                 / ---------------- \
-        |       |  -- has name -> | payload(one.txt) |
-        |       |                 \ ---------------- /
+        / ----- \                / ---------------- \
+        |       | -- has name -> | payload(one.txt) |
+        |       |                \ ---------------- /
         | entry |
-        |       |                 / -------------------- \
-        |       |  -- has body -> | payload(Hello, One!) |
-        \ ----- /                 \ -------------------- /
+        |       |                / -------------------- \
+        |       | -- has body -> | payload(Hello, One!) |
+        \ ----- /                \ -------------------- /
             |
             |
        has sibling
@@ -182,20 +182,20 @@ $ mv one.txt one.md
 ```
  /* ... */
 
-        / ----- \                 / ---------------- \
-        |       |  -- has name -> | payload(one.txt) |
-        |       |                 \ ---------------- /
+        / ----- \                / ---------------- \
+        |       | -- has name -> | payload(one.txt) |
+        |       |                \ ---------------- /
         | entry |
         |       |                / -------------------- \
         |       | -- has body -> | payload(Hello, One!) |
         \ ----- /                \ -------------------- /
-                                                       |
-        / ----- \                 / --------------- \  |
-        |       |  -- has name -> | payload(one.md) |  |
-        |       |                 \ --------------- /  |
-        | entry |                                      |
-        |       |                                      |
-        |       |  -- has body ----------------------- /
+                                                      |
+        / ----- \                / --------------- \  |
+        |       | -- has name -> | payload(one.md) |  |
+        |       |                \ --------------- /  |
+        | entry |                                     |
+        |       |                                     |
+        |       | -- has body ----------------------- /
         \ ----- /
 
  /* ... */
