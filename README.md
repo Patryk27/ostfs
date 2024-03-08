@@ -152,7 +152,7 @@ Each object is assigned a unique identifier (starting from zero and going up)
 and each object _links_ to other objects using their identifiers as well - this
 can be observed through the `./ofs inspect` command:
 
-``` shell
+```
 [0] = Header(HeaderObj { root: ObjectId(29), clone: None, dead: None })
 [1] = Entry(EntryObj { name: ObjectId(2), body: None, next: None, kind: Directory, size: 0, mode: 511, uid: 502, gid: 20 })
 [2] = Payload(Payload { size: 1, next: None, data: "/" })
@@ -219,25 +219,23 @@ d   e f   g
 
 This is what makes (almost) zero-cost snapshots (almost) zero-cost - because we
 don't modify objects in-place, we can reuse this fact to time-travel back to the
-past, if only we can get our hands on the past object ids.
+past, if only we can get our hands on the past object ids (and we don't remove
+those past objects, of course).
 
-(and we don't remove those past objects, of course.)
-
-What's more, this also allows for perfectly safe atomic updates - remember the
-header object?
+What's more, this also allows for perfectly safe **atomic updates**! -- remember
+the header object?
 
 Header is always located at the object slot 0 (i.e. the beginning of the file)
 and the most important information it contains is the reference (object id) of
-the root directory.
-
-Initially the root directory starts at slot 1 (right after the header), but as
-soon as the filesystem gets modified, we generate a _new_ root directory (with a
-brand new object id), which requires updating the header.
+the root directory. Initially the root directory starts at slot 1 (right after
+the header), but as soon as the filesystem gets modified, we generate a _new_
+root directory (with a brand new object id), which requires updating the header.
 
 Here's the second greatest part of using copy on writes:
 
 If the power goes down when we're building the new tree, nothing gets
-accidentally removed/updated! (it's not possible to observe a partial update)
+accidentally removed/updated! (that is, it's not possible to observe a partial
+update)
 
 See, since we update the header at the very end of the process (after we've
 built the entire tree), the only two possible options are:
