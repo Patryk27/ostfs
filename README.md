@@ -245,9 +245,8 @@ built the entire tree), the only two possible options are:
   the next mount the filesystem will effectively rollback to its previous state
   (because we didn't overwrite the older objects),
 
-- power went down after we've managed to write the header, in which case we're
-  100% sure the _entire_ new tree is in place, because we update the header
-  last.
+- power went down _after_ we've managed to write the header, in which case we're
+  100% sure the entire new tree is in place, because we update the header last.
 
 (well, it's technically also possible for the power to go down during the header
 update and that's why ZFS uses the concept of uberblock, but let's not go _that_
