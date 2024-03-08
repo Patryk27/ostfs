@@ -1,0 +1,12 @@
+[package]
+name = "ostfs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+fuser = "0.14.0"
+libc = "0.2"
+structopt = { version = "0.3", default-features = false }
+tracing = "0.1"
+tracing-subscriber = "0.3"
