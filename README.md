@@ -215,8 +215,8 @@ Similarly, given a structure like:
 d   e f   g
 ```
 
-... if we modified `e`, we'd only need to duplicate `b` and `a` - the rest can
-be linked as-is, without being duplicated.
+... if we modified `e`, we'd only need to duplicate `b` and `a` - the rest could
+be linked as-is.
 
 This is what makes (almost) zero-cost snapshots (almost) zero-cost - because we
 don't modify objects in-place, we can reuse this fact to time-travel back to the
