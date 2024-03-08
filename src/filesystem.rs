@@ -36,7 +36,7 @@ impl Filesystem {
             let clone = CloneController::new(&mut objects).find(clone)?;
 
             root_oid = clone.root;
-            is_writable = clone.is_writable;
+            is_writable = false; // TODO
         } else {
             root_oid = objects.get_header()?.root;
             is_writable = true;
