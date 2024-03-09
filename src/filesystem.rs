@@ -10,9 +10,8 @@ mod rm;
 mod setattr;
 mod write;
 
-use self::alter::*;
 use self::result::*;
-use crate::{CloneController, EntryObj, InodeId, Inodes, Object, ObjectId, Objects, Transaction};
+use crate::{EntryObj, InodeId, Inodes, Object, ObjectId, Objects, Transaction};
 use anyhow::Result;
 use fuser::{FileAttr, FileType};
 use std::ffi::OsStr;
@@ -23,32 +22,19 @@ use tracing::instrument;
 pub struct Filesystem {
     objects: Objects,
     inodes: Inodes,
+    source: FilesystemSource,
     tx: Transaction,
-    is_writable: bool,
 }
 
 impl Filesystem {
-    pub fn new(mut objects: Objects, clone: Option<&str>) -> Result<Self> {
-        let root_oid;
-        let is_writable;
-
-        if let Some(clone) = clone {
-            let clone = CloneController::new(&mut objects).find(clone)?;
-
-            root_oid = clone.root;
-            is_writable = false; // TODO
-        } else {
-            root_oid = objects.get_header()?.root;
-            is_writable = true;
-        }
-
-        let inodes = Inodes::new(root_oid)?;
+    pub fn new(mut objects: Objects, source: FilesystemSource) -> Result<Self> {
+        let inodes = Inodes::new(source.root_oid(&mut objects)?)?;
 
         Ok(Self {
             objects,
             inodes,
+            source,
             tx: Default::default(),
-            is_writable,
         })
     }
 
@@ -89,7 +75,8 @@ impl Filesystem {
     }
 
     fn commit_tx(&mut self) -> Result<()> {
-        self.tx.commit(&mut self.objects, Some(&mut self.inodes))?;
+        self.tx
+            .commit(&mut self.objects, Some(&mut self.inodes), self.source)?;
 
         Ok(())
     }
@@ -148,5 +135,27 @@ impl Filesystem {
         }
 
         Ok(child_oid)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum FilesystemSource {
+    Original { is_writable: bool },
+    Clone { oid: ObjectId, is_writable: bool },
+}
+
+impl FilesystemSource {
+    fn root_oid(self, objects: &mut Objects) -> Result<ObjectId> {
+        match self {
+            FilesystemSource::Original { .. } => Ok(objects.get_header()?.root),
+            FilesystemSource::Clone { oid, .. } => Ok(objects.get(oid)?.into_clone(oid)?.root),
+        }
+    }
+
+    fn is_writable(self) -> bool {
+        match self {
+            FilesystemSource::Original { is_writable } => is_writable,
+            FilesystemSource::Clone { is_writable, .. } => is_writable,
+        }
     }
 }

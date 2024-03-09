@@ -1,5 +1,4 @@
 use super::{FsError, FsResult};
-use crate::filesystem::{Alter, AlterResult};
 use crate::{Filesystem, InodeId, Object};
 use fuser::FileAttr;
 use tracing::{debug, instrument};
@@ -16,19 +15,13 @@ impl Filesystem {
     ) -> FsResult<FileAttr> {
         debug!("op: setattr()");
 
-        if !self.is_writable {
+        if !self.source.is_writable() {
             return Err(FsError::ReadOnly);
         }
 
         self.begin_tx()?;
 
-        let AlterResult {
-            new_root_oid,
-            new_oid,
-            changeset,
-        } = self.alter(Alter::clone(iid))?;
-
-        let new_oid = new_oid.unwrap();
+        let new_oid = self.clone_inode(iid)?;
         let mut obj = self.objects.get(new_oid)?.into_entry(new_oid)?;
 
         if let Some(mode) = mode {
@@ -55,7 +48,6 @@ impl Filesystem {
         }
 
         self.objects.set(new_oid, Object::Entry(obj))?;
-        self.tx.update_root(new_root_oid, changeset)?;
         self.commit_tx()?;
 
         Ok(Self::attr(iid, obj))

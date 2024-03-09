@@ -1,5 +1,4 @@
 use super::{FsError, FsResult};
-use crate::filesystem::{Alter, AlterResult};
 use crate::{Filesystem, InodeId, Object};
 use anyhow::Context;
 use std::ffi::OsStr;
@@ -17,7 +16,7 @@ impl Filesystem {
     ) -> FsResult<()> {
         debug!("op: rename()");
 
-        if !self.is_writable {
+        if !self.source.is_writable() {
             return Err(FsError::ReadOnly);
         }
 
@@ -29,13 +28,7 @@ impl Filesystem {
                 return Ok(());
             }
 
-            let AlterResult {
-                new_root_oid,
-                new_oid,
-                changeset,
-            } = self.alter(Alter::clone(iid))?;
-
-            let new_oid = new_oid.unwrap();
+            let new_oid = self.clone_inode(iid)?;
             let mut obj = self.objects.get(new_oid)?.into_entry(new_oid)?;
 
             obj.name = self
@@ -44,7 +37,6 @@ impl Filesystem {
                 .context("got an empty name")?;
 
             self.objects.set(new_oid, Object::Entry(obj))?;
-            self.tx.update_root(new_root_oid, changeset)?;
             self.commit_tx()?;
 
             Ok(())

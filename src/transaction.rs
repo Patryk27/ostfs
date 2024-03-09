@@ -1,5 +1,5 @@
-use crate::{HeaderObj, InodeChangeset, Inodes, ObjectId, Objects};
-use anyhow::{Context, Result};
+use crate::{FilesystemSource, HeaderObj, InodeId, Inodes, Object, ObjectId, Objects};
+use anyhow::{anyhow, Context, Result};
 use tracing::warn;
 
 #[derive(Debug, Default)]
@@ -16,9 +16,11 @@ impl Transaction {
         }
 
         self.state = Some(TransactionState {
-            header: objects.get_header()?,
-            changeset: Default::default(),
             dirty: false,
+            new_root: None,
+            new_header: objects.get_header()?,
+            inodes_to_remap: Default::default(),
+            inodes_to_free: Default::default(),
         });
 
         Ok(())
@@ -30,29 +32,86 @@ impl Transaction {
             .context("tried to modify a closed transaction")
     }
 
-    pub fn update_root(&mut self, new_root_oid: ObjectId, changeset: InodeChangeset) -> Result<()> {
-        let state = self.get_mut()?;
+    /// Schedules given node to replace the current root node.
+    ///
+    /// If we're working on a clone, this updates the clone's root - otherwise
+    /// this updates the header's root.
+    pub fn set_root(&mut self, new_root_oid: ObjectId) -> Result<()> {
+        let tx = self.get_mut()?;
 
-        state.header.root = new_root_oid;
-        state.changeset = changeset;
-        state.dirty = true;
+        if tx.new_root.is_some() {
+            return Err(anyhow!("set_root() called twice in a single transaction"));
+        }
+
+        tx.dirty = true;
+        tx.new_root = Some(new_root_oid);
 
         Ok(())
     }
 
-    pub fn commit(&mut self, objects: &mut Objects, inodes: Option<&mut Inodes>) -> Result<()> {
-        let state = self
+    /// Schedules given inode to point at new object.
+    pub fn remap_inode(&mut self, src: InodeId, dst: ObjectId) -> Result<()> {
+        let tx = self.get_mut()?;
+
+        tx.dirty = true;
+        tx.inodes_to_remap.push((src, dst));
+
+        Ok(())
+    }
+
+    /// Schedules given inode to be freed.
+    pub fn free_inode(&mut self, iid: InodeId) -> Result<()> {
+        let tx = self.get_mut()?;
+
+        tx.dirty = true;
+        tx.inodes_to_free.push(iid);
+
+        Ok(())
+    }
+
+    /// Applies scheduled changes.
+    pub fn commit(
+        &mut self,
+        objects: &mut Objects,
+        inodes: Option<&mut Inodes>,
+        source: FilesystemSource,
+    ) -> Result<()> {
+        let mut tx = self
             .state
             .take()
             .context("tried to commit a closed transaction")?;
 
-        if state.dirty {
-            objects.set_header(state.header)?;
+        if !tx.dirty {
+            return Ok(());
+        }
 
-            if !state.changeset.is_empty() {
-                state.changeset.apply_to(
-                    inodes.context("tried to commit changeset without having inodes alive")?,
-                );
+        if let Some(new_root_oid) = tx.new_root {
+            if let FilesystemSource::Original { .. } = source {
+                tx.new_header.root = new_root_oid;
+            }
+        }
+
+        objects.set_header(tx.new_header)?;
+
+        if let Some(new_root_oid) = tx.new_root {
+            if let FilesystemSource::Clone { oid, .. } = source {
+                let mut obj = objects.get(oid)?.into_clone(oid)?;
+
+                obj.root = new_root_oid;
+
+                objects.set(oid, Object::Clone(obj))?;
+            }
+        }
+
+        if !tx.inodes_to_remap.is_empty() || !tx.inodes_to_free.is_empty() {
+            let inodes = inodes.context("tried to commit changeset without having any inodes")?;
+
+            for (src, dst) in tx.inodes_to_remap {
+                inodes.remap(src, dst);
+            }
+
+            for iid in tx.inodes_to_free {
+                inodes.free(iid);
             }
         }
 
@@ -62,7 +121,9 @@ impl Transaction {
 
 #[derive(Debug)]
 pub struct TransactionState {
-    pub header: HeaderObj,
-    pub changeset: InodeChangeset,
     pub dirty: bool,
+    pub new_root: Option<ObjectId>,
+    pub new_header: HeaderObj,
+    pub inodes_to_remap: Vec<(InodeId, ObjectId)>,
+    pub inodes_to_free: Vec<InodeId>,
 }

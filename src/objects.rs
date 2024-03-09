@@ -116,7 +116,7 @@ impl Objects {
         if let Some(tx) = tx {
             let tx = tx.get_mut()?;
 
-            if let Some(oid) = tx.header.dead {
+            if let Some(oid) = tx.new_header.dead {
                 let dead_obj = self.get(oid)?;
 
                 if let Ok(dead_obj) = dead_obj.into_dead(oid) {
@@ -127,7 +127,7 @@ impl Objects {
                         .with_context(|| format!("couldn't write [{:?}] = {:?}", oid, obj))?;
 
                     tx.dirty = true;
-                    tx.header.dead = dead_obj.next;
+                    tx.new_header.dead = dead_obj.next;
 
                     return Ok(oid);
                 } else {

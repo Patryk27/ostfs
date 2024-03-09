@@ -21,7 +21,7 @@ $ ./ost mount tank.ofs mnt &
 $ echo 'Hello, World!' > mnt/hello.txt
 
 # Make a snapshot (aka a read-only clone):
-$ ./ost clone create tank.ofs init --mode ro
+$ ./ost clone create tank.ofs init --read-only
 
 # </>
 # What's cool is that creating a clone doesn't actually
@@ -39,10 +39,7 @@ $ echo 'nobody expects the spanish inquisition' > mnt/hello.txt
 # Alright, now we can utilize the snapshot to time-travel!
 # ---
 
-# Kill the mount:
-# (this might be a bash/zsh specific thing - if it doesn't work
-#  in your shell, you can run `fg` and press Ctrl+C)
-$ kill %1
+# Umount filesystem:
 $ umount mnt
 
 # Invoke `./ofs mount` again, but instructing it to mount
@@ -280,6 +277,7 @@ to take a look anyway, here's a couple of entrypoints:
 
 - `object.rs` 
 - `objects.rs`
+- `alter.rs`
 - `filesystem.rs` (in particular the modules inside of it)
 
 ## License

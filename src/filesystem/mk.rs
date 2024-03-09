@@ -1,4 +1,4 @@
-use super::{Alter, AlterResult, FsError, FsResult};
+use super::{FsError, FsResult};
 use crate::{EntryObj, Filesystem, InodeId, Object};
 use anyhow::Context;
 use fuser::{FileAttr, FileType};
@@ -44,7 +44,7 @@ impl Filesystem {
         gid: u32,
         kind: FileType,
     ) -> FsResult<FileAttr> {
-        if !self.is_writable {
+        if !self.source.is_writable() {
             return Err(FsError::ReadOnly);
         }
 
@@ -55,13 +55,7 @@ impl Filesystem {
             .alloc_payload(Some(&mut self.tx), name.as_bytes())?
             .context("got an empty name")?;
 
-        let AlterResult {
-            new_root_oid,
-            new_oid: new_parent_oid,
-            changeset,
-        } = self.alter(Alter::clone(parent_iid))?;
-
-        let new_parent_oid = new_parent_oid.unwrap();
+        let new_parent_oid = self.clone_inode(parent_iid)?;
 
         let obj = EntryObj {
             name: name_oid,
@@ -76,7 +70,6 @@ impl Filesystem {
 
         let new_oid = self.add_child(new_parent_oid, Object::Entry(obj))?;
 
-        self.tx.update_root(new_root_oid, changeset)?;
         self.commit_tx()?;
 
         let new_iid = self.inodes.alloc(parent_iid, new_oid)?;

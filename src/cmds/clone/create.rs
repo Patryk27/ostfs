@@ -1,5 +1,5 @@
 use crate::{CloneController, Objects, Storage};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -11,9 +11,9 @@ pub struct CreateCloneCmd {
     /// Name of the clone; must be unique across other clone names
     name: String,
 
-    /// `rw` or `ro`, specifying whether the clone is read-write or read-only
+    /// When specified, clone is read-only
     #[structopt(short, long)]
-    mode: String,
+    read_only: bool,
 }
 
 impl CreateCloneCmd {
@@ -21,13 +21,7 @@ impl CreateCloneCmd {
         let storage = Storage::open(&self.src, true)?;
         let mut objects = Objects::new(storage);
 
-        let is_writable = match self.mode.as_str() {
-            "rw" => true,
-            "ro" => false,
-            mode => return Err(anyhow!("unknown mode: {}", mode)),
-        };
-
-        CloneController::new(&mut objects).create(&self.name, is_writable)?;
+        CloneController::new(&mut objects).create(&self.name, !self.read_only)?;
 
         println!("ok");
 

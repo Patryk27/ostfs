@@ -1,4 +1,4 @@
-use super::{Alter, AlterResult, FsError, FsResult};
+use super::{FsError, FsResult};
 use crate::{Filesystem, InodeId};
 use std::ffi::OsStr;
 use tracing::{debug, instrument};
@@ -19,21 +19,16 @@ impl Filesystem {
     }
 
     fn rm(&mut self, parent_iid: InodeId, name: &OsStr) -> FsResult<()> {
-        if !self.is_writable {
+        if !self.source.is_writable() {
             return Err(FsError::ReadOnly);
         }
 
+        // Removing entries is pretty simple - just clone the entire tree, but
+        // without given child:
+
         self.begin_tx()?;
-
-        let (child_iid, _) = self.find(parent_iid, name)?;
-
-        let AlterResult {
-            new_root_oid,
-            changeset,
-            ..
-        } = self.alter(Alter::delete(child_iid))?;
-
-        self.tx.update_root(new_root_oid, changeset)?;
+        let iid = self.find(parent_iid, name)?.0;
+        self.delete_inode(iid)?;
         self.commit_tx()?;
 
         Ok(())

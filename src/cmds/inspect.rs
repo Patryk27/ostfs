@@ -5,6 +5,7 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub struct InspectCmd {
+    /// Path to the *.ofs file
     src: PathBuf,
 }
 

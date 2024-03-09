@@ -2,7 +2,6 @@ mod clone;
 mod cmds;
 mod filesystem;
 mod inode;
-mod inode_changeset;
 mod inode_id;
 mod inodes;
 mod object;
@@ -16,7 +15,6 @@ pub use self::clone::*;
 pub use self::cmds::*;
 pub use self::filesystem::*;
 pub use self::inode::*;
-pub use self::inode_changeset::*;
 pub use self::inode_id::*;
 pub use self::inodes::*;
 pub use self::object::*;
@@ -28,8 +26,7 @@ pub use self::transaction::*;
 use anyhow::Result;
 use structopt::StructOpt;
 
-/// OstFS, a made-for-fun FUSE filesystem with support for zero-cost snapshots
-/// and clones
+/// OstFS, a toy FUSE filesystem with support for zero-cost snapshots and clones
 #[derive(Debug, StructOpt)]
 enum Cmd {
     Clone(CloneCmd),

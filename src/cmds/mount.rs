@@ -1,4 +1,4 @@
-use crate::{Filesystem, InodeId, Objects, Storage};
+use crate::{CloneController, Filesystem, FilesystemSource, InodeId, Objects, Storage};
 use anyhow::{Context, Result};
 use fuser::{MountOption, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, Request, TimeOrNow};
 use std::ffi::OsStr;
@@ -8,12 +8,21 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub struct MountCmd {
+    /// Path to the *.ofs file
     src: PathBuf,
+
+    /// Path to the mountpoint
     dst: PathBuf,
 
+    /// When specified, mount given clone
     #[structopt(short, long)]
     clone: Option<String>,
 
+    /// Force a read-only mount
+    #[structopt(long)]
+    ro: bool,
+
+    /// Don't allow for the *.ofs file to grow, try reusing space
     #[structopt(long)]
     no_grow: bool,
 }
@@ -23,8 +32,22 @@ impl MountCmd {
         tracing_subscriber::fmt::init();
 
         let storage = Storage::open(&self.src, !self.no_grow)?;
-        let objects = Objects::new(storage);
-        let fs = Filesystem::new(objects, self.clone.as_deref())?;
+        let mut objects = Objects::new(storage);
+
+        let source = if let Some(clone) = &self.clone {
+            let clone = CloneController::new(&mut objects).find(clone)?;
+
+            FilesystemSource::Clone {
+                oid: clone.oid,
+                is_writable: clone.is_writable && !self.ro,
+            }
+        } else {
+            FilesystemSource::Original {
+                is_writable: !self.ro,
+            }
+        };
+
+        let fs = Filesystem::new(objects, source)?;
 
         let options = vec![
             MountOption::FSName("ofs".into()),
