@@ -271,8 +271,8 @@ wanted to hack something over three days, not thirty years)
 
 ## Hacking
 
-Code is a bit crude at the moment, with no tests and no comments - if you'd like
-to take a look anyway, here's a couple of entrypoints:
+Code is a bit crude, but if you'd like to take a look, here's a couple of
+useful entrypoints:
 
 - `object.rs` 
 - `objects.rs`
