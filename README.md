@@ -14,8 +14,7 @@ $ mkdir mnt
 $ ./ost mount tank.ofs mnt &
 
 # (`&` causes the process to run in background - press
-#  the enter key a few times to bring back your shell
-#  prompt)
+#  the enter key to bring back your shell prompt)
 
 # Create a file *inside* the filesystem:
 $ echo 'Hello, World!' > mnt/hello.txt
