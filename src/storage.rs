@@ -11,7 +11,6 @@ pub struct Storage {
     can_grow: bool,
 }
 
-#[allow(clippy::len_without_is_empty)]
 impl Storage {
     #[instrument]
     pub fn create(path: &Path) -> Result<Self> {
@@ -39,6 +38,7 @@ impl Storage {
         Ok(Self { file, can_grow })
     }
 
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&mut self) -> Result<u32> {
         let bytes = self.file.seek(SeekFrom::End(0))?;
 

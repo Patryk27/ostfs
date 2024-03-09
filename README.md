@@ -66,25 +66,6 @@ $ ./ost
 
 ... but it mostly boils down to `./ost create` & `./ost mount`.
 
-### Quirks
-
-An important OstFS-thingie is that it uses garbage collector to remove stale
-data, but it doesn't _start_ the collector automatically - every now and then
-it's a good idea to unmount the system and run:
-
-``` shell
-$ ./ost collect tank.ofs
-```
-
-This is required because all actions made on the filesystem (not only removals,
-but also changes, renames etc.) _append_ data into the backing file - imagine it 
-containing a journal like `file xyz got moved`, `file abc got changed`, where
-without running the garbage collector, those events would never get pruned and
-even if the only thing you do is `mv`, the file would continue to grow.
-
-(in reality OstFS utilizes a graph instead of being event based, but events are
-a good enough approximation to the problem here)
-
 ## Architecture
 
 OstFS stores everything in a tree structure which starts from the header and
@@ -261,7 +242,6 @@ If you're into that, you might find this interesting:
 - OstFS keeps inodes entirely in memory
 - OstFS doesn't store checksums
 - OstFS doesn't store atime, ctime and a couple of other properties
-- OstFS requires running garbage collector by hand
 - OstFS has no caching layer
 - **OstFS is a toy** - I made it solely to learn a few cool concepts; if you're
   looking for actual filesystem, ZFS is your friend!
@@ -276,7 +256,7 @@ useful entrypoints:
 
 - `object.rs` 
 - `objects.rs`
-- `alter.rs`
+- `ops.rs`
 - `filesystem.rs` (in particular the modules inside of it)
 
 ## License

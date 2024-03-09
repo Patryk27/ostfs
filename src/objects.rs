@@ -13,6 +13,12 @@ impl Objects {
         Self { storage }
     }
 
+    #[allow(clippy::len_without_is_empty)]
+    #[instrument(skip(self))]
+    pub fn len(&mut self) -> Result<u32> {
+        self.storage.len()
+    }
+
     #[instrument(skip(self))]
     pub fn all(&mut self) -> Result<Vec<(ObjectId, Object)>> {
         let mut objs = Vec::new();
@@ -87,7 +93,7 @@ impl Objects {
         Ok(self.get_string(oid)?.into())
     }
 
-    #[instrument(skip(self, obj))]
+    #[instrument(skip(self, oid, obj))]
     pub fn set(&mut self, oid: ObjectId, obj: Object) -> Result<()> {
         trace!("writing object [{:?}] = {:?}", oid, obj);
 
@@ -102,8 +108,10 @@ impl Objects {
         Ok(())
     }
 
-    #[instrument(skip(self))]
+    #[instrument(skip(self, obj))]
     pub fn set_header(&mut self, obj: HeaderObj) -> Result<()> {
+        trace!("writing header: {:?}", obj);
+
         self.storage
             .write(ObjectId::HEADER.get(), Object::Header(obj).encode())
             .context("couldn't write header")?;
@@ -131,7 +139,7 @@ impl Objects {
 
                     return Ok(oid);
                 } else {
-                    warn!("can't reuse {:?} - GC required", oid);
+                    warn!("can't reuse {:?}, it's been already overwritten", oid);
                 }
             }
         }

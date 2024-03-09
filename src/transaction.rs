@@ -1,4 +1,4 @@
-use crate::{FilesystemOrigin, HeaderObj, InodeId, Inodes, Object, ObjectId, Objects};
+use crate::{CloneObj, FilesystemOrigin, HeaderObj, InodeId, Inodes, Object, ObjectId, Objects};
 use anyhow::{anyhow, Context, Result};
 use tracing::warn;
 
@@ -69,20 +69,23 @@ impl Transaction {
         Ok(())
     }
 
-    /// Applies scheduled changes ~atomically.
+    /// Applies scheduled changes atomically and returns whether anything got
+    /// changed.
+    ///
+    /// (i.e. false = transaction was a no-op)
     pub fn commit(
         &mut self,
         objects: &mut Objects,
         inodes: Option<&mut Inodes>,
         origin: FilesystemOrigin,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         let mut tx = self
             .state
             .take()
             .context("tried to commit a closed transaction")?;
 
         if !tx.dirty {
-            return Ok(());
+            return Ok(false);
         }
 
         if let Some(new_root_oid) = tx.new_root {
@@ -95,9 +98,10 @@ impl Transaction {
 
         if let Some(new_root_oid) = tx.new_root {
             if let FilesystemOrigin::Clone { oid, .. } = origin {
-                let mut obj = objects.get(oid)?.into_clone(oid)?;
-
-                obj.root = new_root_oid;
+                let obj = CloneObj {
+                    root: new_root_oid,
+                    ..objects.get(oid)?.into_clone(oid)?
+                };
 
                 objects.set(oid, Object::Clone(obj))?;
             }
@@ -115,7 +119,7 @@ impl Transaction {
             }
         }
 
-        Ok(())
+        Ok(true)
     }
 }
 

@@ -1,5 +1,6 @@
 mod clone;
 mod cmds;
+mod collector;
 mod filesystem;
 mod inode;
 mod inode_id;
@@ -13,6 +14,7 @@ mod transaction;
 
 pub use self::clone::*;
 pub use self::cmds::*;
+pub use self::collector::*;
 pub use self::filesystem::*;
 pub use self::inode::*;
 pub use self::inode_id::*;
@@ -30,7 +32,6 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 enum Cmd {
     Clone(CloneCmd),
-    Collect(CollectCmd),
     Create(CreateCmd),
     Inspect(InspectCmd),
     Mount(MountCmd),
@@ -40,7 +41,6 @@ fn main() -> Result<()> {
     match Cmd::from_args() {
         Cmd::Clone(cmd) => cmd.run(),
         Cmd::Create(cmd) => cmd.run(),
-        Cmd::Collect(cmd) => cmd.run(),
         Cmd::Inspect(cmd) => cmd.run(),
         Cmd::Mount(cmd) => cmd.run(),
     }
