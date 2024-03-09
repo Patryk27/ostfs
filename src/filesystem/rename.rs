@@ -16,7 +16,7 @@ impl Filesystem {
     ) -> FsResult<()> {
         debug!("op: rename()");
 
-        if !self.source.is_writable() {
+        if !self.origin.is_writable() {
             return Err(FsError::ReadOnly);
         }
 

@@ -1,4 +1,4 @@
-use crate::{FilesystemSource, HeaderObj, InodeId, Inodes, Object, ObjectId, Objects};
+use crate::{FilesystemOrigin, HeaderObj, InodeId, Inodes, Object, ObjectId, Objects};
 use anyhow::{anyhow, Context, Result};
 use tracing::warn;
 
@@ -69,12 +69,12 @@ impl Transaction {
         Ok(())
     }
 
-    /// Applies scheduled changes.
+    /// Applies scheduled changes ~atomically.
     pub fn commit(
         &mut self,
         objects: &mut Objects,
         inodes: Option<&mut Inodes>,
-        source: FilesystemSource,
+        origin: FilesystemOrigin,
     ) -> Result<()> {
         let mut tx = self
             .state
@@ -86,7 +86,7 @@ impl Transaction {
         }
 
         if let Some(new_root_oid) = tx.new_root {
-            if let FilesystemSource::Original { .. } = source {
+            if let FilesystemOrigin::Main { .. } = origin {
                 tx.new_header.root = new_root_oid;
             }
         }
@@ -94,7 +94,7 @@ impl Transaction {
         objects.set_header(tx.new_header)?;
 
         if let Some(new_root_oid) = tx.new_root {
-            if let FilesystemSource::Clone { oid, .. } = source {
+            if let FilesystemOrigin::Clone { oid, .. } = origin {
                 let mut obj = objects.get(oid)?.into_clone(oid)?;
 
                 obj.root = new_root_oid;

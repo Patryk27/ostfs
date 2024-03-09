@@ -19,12 +19,9 @@ impl Filesystem {
     }
 
     fn rm(&mut self, parent_iid: InodeId, name: &OsStr) -> FsResult<()> {
-        if !self.source.is_writable() {
+        if !self.origin.is_writable() {
             return Err(FsError::ReadOnly);
         }
-
-        // Removing entries is pretty simple - just clone the entire tree, but
-        // without given child:
 
         self.begin_tx()?;
         let iid = self.find(parent_iid, name)?.0;

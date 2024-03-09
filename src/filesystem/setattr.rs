@@ -15,7 +15,7 @@ impl Filesystem {
     ) -> FsResult<FileAttr> {
         debug!("op: setattr()");
 
-        if !self.source.is_writable() {
+        if !self.origin.is_writable() {
             return Err(FsError::ReadOnly);
         }
 

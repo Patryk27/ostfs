@@ -22,18 +22,18 @@ use tracing::instrument;
 pub struct Filesystem {
     objects: Objects,
     inodes: Inodes,
-    source: FilesystemSource,
+    origin: FilesystemOrigin,
     tx: Transaction,
 }
 
 impl Filesystem {
-    pub fn new(mut objects: Objects, source: FilesystemSource) -> Result<Self> {
-        let inodes = Inodes::new(source.root_oid(&mut objects)?)?;
+    pub fn new(mut objects: Objects, origin: FilesystemOrigin) -> Result<Self> {
+        let inodes = Inodes::new(origin.root_oid(&mut objects)?)?;
 
         Ok(Self {
             objects,
             inodes,
-            source,
+            origin,
             tx: Default::default(),
         })
     }
@@ -76,11 +76,60 @@ impl Filesystem {
 
     fn commit_tx(&mut self) -> Result<()> {
         self.tx
-            .commit(&mut self.objects, Some(&mut self.inodes), self.source)?;
+            .commit(&mut self.objects, Some(&mut self.inodes), self.origin)?;
 
         Ok(())
     }
 
+    /// Appends object to parent (i.e. adds a file/directory into a directory).
+    ///
+    /// Note that this function works in-place, i.e. it assumes that the parent
+    /// has been already cloned.
+    #[instrument(skip(self))]
+    fn append(&mut self, parent_oid: ObjectId, child: Object) -> Result<ObjectId> {
+        let parent = self.objects.get(parent_oid)?.into_entry(parent_oid)?;
+        let child_oid = self.objects.alloc(Some(&mut self.tx), child)?;
+
+        if let Some(mut oid) = parent.body {
+            // If the parent already has a child, find the linked list's tail
+            // and append our object there
+
+            loop {
+                let obj = self.objects.get(oid)?.into_entry(oid)?;
+
+                if let Some(next) = obj.next {
+                    oid = next;
+                } else {
+                    self.objects.set(
+                        oid,
+                        Object::Entry(EntryObj {
+                            next: Some(child_oid),
+                            ..obj
+                        }),
+                    )?;
+
+                    break;
+                }
+            }
+        } else {
+            // If our parent has no children (it's an empty directory), then
+            // easy peasy - just modify the parent
+
+            self.objects.set(
+                parent_oid,
+                Object::Entry(EntryObj {
+                    body: Some(child_oid),
+                    ..parent
+                }),
+            )?;
+        }
+
+        Ok(child_oid)
+    }
+
+    /// Goes through inode's children and looks for the one with given name.
+    ///
+    /// If no such child exists, bails out with [`FsError::NotFound`].
     #[instrument(skip(self))]
     fn find(&mut self, parent_iid: InodeId, name: &OsStr) -> FsResult<(InodeId, EntryObj)> {
         let children = self
@@ -100,62 +149,26 @@ impl Filesystem {
 
         Err(FsError::NotFound)
     }
-
-    #[instrument(skip(self))]
-    fn add_child(&mut self, parent_oid: ObjectId, child: Object) -> Result<ObjectId> {
-        let parent = self.objects.get(parent_oid)?.into_entry(parent_oid)?;
-        let child_oid = self.objects.alloc(Some(&mut self.tx), child)?;
-
-        if let Some(mut oid) = parent.body {
-            loop {
-                let obj = self.objects.get(oid)?.into_entry(oid)?;
-
-                if let Some(next) = obj.next {
-                    oid = next;
-                } else {
-                    self.objects.set(
-                        oid,
-                        Object::Entry(EntryObj {
-                            next: Some(child_oid),
-                            ..obj
-                        }),
-                    )?;
-
-                    break;
-                }
-            }
-        } else {
-            self.objects.set(
-                parent_oid,
-                Object::Entry(EntryObj {
-                    body: Some(child_oid),
-                    ..parent
-                }),
-            )?;
-        }
-
-        Ok(child_oid)
-    }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum FilesystemSource {
-    Original { is_writable: bool },
+pub enum FilesystemOrigin {
+    Main { is_writable: bool },
     Clone { oid: ObjectId, is_writable: bool },
 }
 
-impl FilesystemSource {
+impl FilesystemOrigin {
     fn root_oid(self, objects: &mut Objects) -> Result<ObjectId> {
         match self {
-            FilesystemSource::Original { .. } => Ok(objects.get_header()?.root),
-            FilesystemSource::Clone { oid, .. } => Ok(objects.get(oid)?.into_clone(oid)?.root),
+            FilesystemOrigin::Main { .. } => Ok(objects.get_header()?.root),
+            FilesystemOrigin::Clone { oid, .. } => Ok(objects.get(oid)?.into_clone(oid)?.root),
         }
     }
 
     fn is_writable(self) -> bool {
         match self {
-            FilesystemSource::Original { is_writable } => is_writable,
-            FilesystemSource::Clone { is_writable, .. } => is_writable,
+            FilesystemOrigin::Main { is_writable } => is_writable,
+            FilesystemOrigin::Clone { is_writable, .. } => is_writable,
         }
     }
 }

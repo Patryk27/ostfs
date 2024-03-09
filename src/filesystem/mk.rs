@@ -44,7 +44,7 @@ impl Filesystem {
         gid: u32,
         kind: FileType,
     ) -> FsResult<FileAttr> {
-        if !self.source.is_writable() {
+        if !self.origin.is_writable() {
             return Err(FsError::ReadOnly);
         }
 
@@ -68,7 +68,7 @@ impl Filesystem {
             gid,
         };
 
-        let new_oid = self.add_child(new_parent_oid, Object::Entry(obj))?;
+        let new_oid = self.append(new_parent_oid, Object::Entry(obj))?;
 
         self.commit_tx()?;
 

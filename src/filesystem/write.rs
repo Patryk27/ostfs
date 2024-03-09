@@ -7,7 +7,7 @@ impl Filesystem {
     pub fn write(&mut self, iid: InodeId, offset: i64, incoming: &[u8]) -> FsResult<()> {
         debug!("op: write()");
 
-        if !self.source.is_writable() {
+        if !self.origin.is_writable() {
             return Err(FsError::ReadOnly);
         }
 
