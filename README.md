@@ -19,7 +19,7 @@ $ ./ost mount tank.ofs mnt &
 # Create a file *inside* the filesystem:
 $ echo 'Hello, World!' > mnt/hello.txt
 
-# Make a snapshot (aka a read-only clone):
+# Make a snapshot (aka a read-only clone) called `init`:
 $ ./ost clone create tank.ofs init --read-only
 
 # </>
