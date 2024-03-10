@@ -69,7 +69,7 @@ $ ./ost
 ## Architecture
 
 OstFS stores everything in a tree structure which starts from the header and
-then dispatches into clones, the root directory and its children.
+then descends into clones, the root directory and its children.
 
 Something that `ls` displays as:
 
