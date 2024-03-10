@@ -21,7 +21,7 @@ impl Filesystem {
 
         self.begin_tx()?;
 
-        let new_oid = self.clone_inode(iid)?;
+        let new_oid = self.clone_node(iid)?;
         let mut obj = self.objects.get(new_oid)?.into_entry(new_oid)?;
 
         if let Some(mode) = mode {

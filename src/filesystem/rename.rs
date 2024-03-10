@@ -21,14 +21,14 @@ impl Filesystem {
         }
 
         self.begin_tx()?;
-        let (iid, _) = self.find(old_parent_iid, old_name)?;
+        let (iid, _) = self.find_node(old_parent_iid, old_name)?;
 
         if old_parent_iid == new_parent_iid {
             if new_name == old_name {
                 return Ok(());
             }
 
-            let new_oid = self.clone_inode(iid)?;
+            let new_oid = self.clone_node(iid)?;
             let mut obj = self.objects.get(new_oid)?.into_entry(new_oid)?;
 
             obj.name = self

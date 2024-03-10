@@ -10,7 +10,7 @@ impl Filesystem {
     /// Note that this function works in-place, i.e. it assumes that the parent
     /// has been already cloned.
     #[instrument(skip(self))]
-    pub fn append(&mut self, parent_oid: ObjectId, child: Object) -> Result<ObjectId> {
+    pub fn append_node(&mut self, parent_oid: ObjectId, child: Object) -> Result<ObjectId> {
         let parent = self.objects.get(parent_oid)?.into_entry(parent_oid)?;
         let child_oid = self.objects.alloc(Some(&mut self.tx), child)?;
 
@@ -55,7 +55,11 @@ impl Filesystem {
     ///
     /// If no such child exists, bails out with [`FsError::NotFound`].
     #[instrument(skip(self))]
-    pub fn find(&mut self, parent_iid: InodeId, name: &OsStr) -> FsResult<(InodeId, EntryObj)> {
+    pub fn find_node(
+        &mut self,
+        parent_iid: InodeId,
+        name: &OsStr,
+    ) -> FsResult<(InodeId, EntryObj)> {
         let children = self
             .inodes
             .resolve_children(&mut self.objects, parent_iid)
@@ -82,7 +86,7 @@ impl Filesystem {
     ///
     /// This function can be called at most once per transaction (since it
     /// affects inodes and modifies the root).
-    pub fn clone_inode(&mut self, iid: InodeId) -> FsResult<ObjectId> {
+    pub fn clone_node(&mut self, iid: InodeId) -> FsResult<ObjectId> {
         let new_oid = self.alter(Alter::clone(iid))?;
 
         // Unwrap-safety: Cloning doesn't remove any objects, so `new_oid` is
@@ -98,7 +102,7 @@ impl Filesystem {
     ///
     /// This function can be called at most once per transaction (since it
     /// affects inodes and modifies the root).
-    pub fn delete_inode(&mut self, iid: InodeId) -> FsResult<()> {
+    pub fn delete_node(&mut self, iid: InodeId) -> FsResult<()> {
         self.alter(Alter::clone(iid).skipping(iid))?;
 
         Ok(())

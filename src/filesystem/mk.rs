@@ -55,7 +55,7 @@ impl Filesystem {
             .alloc_payload(Some(&mut self.tx), name.as_bytes())?
             .context("got an empty name")?;
 
-        let new_parent_oid = self.clone_inode(parent_iid)?;
+        let new_parent_oid = self.clone_node(parent_iid)?;
 
         let obj = EntryObj {
             name: name_oid,
@@ -68,7 +68,7 @@ impl Filesystem {
             gid,
         };
 
-        let new_oid = self.append(new_parent_oid, Object::Entry(obj))?;
+        let new_oid = self.append_node(new_parent_oid, Object::Entry(obj))?;
 
         self.commit_tx()?;
 

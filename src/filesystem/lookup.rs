@@ -10,7 +10,7 @@ impl Filesystem {
         debug!("op: lookup()");
 
         self.begin_tx()?;
-        let (iid, obj) = self.find(parent_iid, name)?;
+        let (iid, obj) = self.find_node(parent_iid, name)?;
         self.commit_tx()?;
 
         Ok(Self::attr(iid, obj))

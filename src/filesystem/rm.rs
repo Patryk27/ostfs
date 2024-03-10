@@ -24,8 +24,8 @@ impl Filesystem {
         }
 
         self.begin_tx()?;
-        let iid = self.find(parent_iid, name)?.0;
-        self.delete_inode(iid)?;
+        let iid = self.find_node(parent_iid, name)?.0;
+        self.delete_node(iid)?;
         self.commit_tx()?;
 
         Ok(())
