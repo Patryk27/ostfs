@@ -238,7 +238,7 @@ If you're into that, you might find this interesting:
 - OstFS uses 32-byte objects, which makes it easy to understand, but also 
   impractical (doesn't match any typical sector size)
 - OstFS uses linked lists instead of b-treemaps & hashmaps, so a directory with
-  10k entries will open noticably slower than a directory with 10 entries
+  10k entries will open noticeably slower than a directory with 10 entries
 - OstFS keeps inodes entirely in memory
 - OstFS doesn't store checksums
 - OstFS doesn't store atime, ctime and a couple of other properties
